@@ -1,0 +1,338 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String?
+  role          Role      @default(OWNER)
+  workspaceId   String?
+  workspace     Workspace? @relation(fields: [workspaceId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  leads         Lead[]
+  deals         Deal[]
+  vendors       Vendor[]
+  proposals     Proposal[]
+  tasks         Task[]
+  qaReviews     QAReview[]
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  SALES
+  OPERATIONS
+  VENDOR
+  CLIENT
+}
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  users       User[]
+  leads       Lead[]
+  deals       Deal[]
+  clients     Client[]
+  vendors     Vendor[]
+  services    Service[]
+  templates   Template[]
+  offers      Offer[]
+  proposals   Proposal[]
+  projects    Project[]
+  tasks       Task[]
+  qaReviews   QAReview[]
+  kpis        KPI[]
+  invoices    Invoice[]
+  reports     Report[]
+  aiOutputs   AIOutput[]
+  activityLogs ActivityLog[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Lead {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  assignedToId  String?
+  assignedTo    User?    @relation(fields: [assignedToId], references: [id])
+  companyName   String
+  website       String?
+  country       String?
+  industry      String?
+  contactName   String?
+  contactTitle  String?
+  email         String?
+  linkedinUrl   String?
+  phone         String?
+  source        String?
+  status        String   @default("NEW_LEAD")
+  leadScore     Int?
+  painPoints    String?
+  suggestedOffer String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  deal          Deal?
+}
+
+model Deal {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id])
+  leadId          String   @unique
+  lead            Lead     @relation(fields: [leadId], references: [id])
+  assignedToId    String?
+  assignedTo      User?    @relation(fields: [assignedToId], references: [id])
+  stage           String   @default("NEW_LEAD")
+  value           Float?
+  currency        String   @default("USD")
+  probability     Int?
+  expectedCloseDate DateTime?
+  nextAction      String?
+  wonAt           DateTime?
+  lostAt          DateTime?
+  lostReason      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  proposal        Proposal?
+  client          Client?
+}
+
+model Client {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  dealId        String   @unique
+  deal          Deal     @relation(fields: [dealId], references: [id])
+  companyName   String
+  monthlyFee    Float?
+  startDate     DateTime?
+  status        String   @default("ACTIVE")
+  slaTerms      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  projects      Project[]
+  invoices      Invoice[]
+  reports       Report[]
+}
+
+model Vendor {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  assignedToId  String?
+  assignedTo    User?    @relation(fields: [assignedToId], references: [id])
+  name          String
+  email         String
+  country       String?
+  timezone      String?
+  skills        String?
+  hourlyRate    Float?
+  monthlyRate   Float?
+  availability  String?
+  rating        Float?
+  testTaskResult String?
+  ndaStatus     String   @default("PENDING")
+  performanceScore Float?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  projects      Project[]
+}
+
+model Service {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  name          String
+  description   String?
+  category      String?
+  baseCost      Float?
+  basePrice     Float?
+  marginPercent Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  offers        Offer[]
+}
+
+model Offer {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  serviceId     String
+  service       Service  @relation(fields: [serviceId], references: [id])
+  name          String
+  deliverables  String?
+  vendorCost    Float?
+  price         Float?
+  marginPercent Float?
+  slaLevel      String?
+  timeline      String?
+  riskWarnings  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  proposal      Proposal?
+}
+
+model Proposal {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  dealId        String   @unique
+  deal          Deal     @relation(fields: [dealId], references: [id])
+  offerId       String?  @unique
+  offer         Offer?   @relation(fields: [offerId], references: [id])
+  assignedToId  String?
+  assignedTo    User?    @relation(fields: [assignedToId], references: [id])
+  status        String   @default("DRAFT")
+  content       String?
+  pdfUrl        String?
+  sentAt        DateTime?
+  viewedAt      DateTime?
+  signedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Project {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  vendorId      String?
+  vendor        Vendor?  @relation(fields: [vendorId], references: [id])
+  name          String
+  description   String?
+  status        String   @default("ACTIVE")
+  slaTerms      String?
+  startDate     DateTime?
+  endDate       DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  tasks         Task[]
+  kpis          KPI[]
+}
+
+model Task {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  projectId     String?
+  project       Project? @relation(fields: [projectId], references: [id])
+  assignedToId  String?
+  assignedTo    User?    @relation(fields: [assignedToId], references: [id])
+  title         String
+  description   String?
+  status        String   @default("TODO")
+  priority      String   @default("MEDIUM")
+  dueDate       DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model QAReview {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  projectId     String?
+  assignedToId  String?
+  assignedTo    User?    @relation(fields: [assignedToId], references: [id])
+  score         Float
+  mistakes      String?
+  coachingNotes String?
+  clientImpact  String?
+  followUpAction String?
+  reviewType    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model KPI {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id])
+  metricName    String
+  metricValue   Float
+  targetValue   Float?
+  unit          String?
+  period        String?
+  recordedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  amount        Float
+  currency      String   @default("USD")
+  status        String   @default("PENDING")
+  dueDate       DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Report {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  clientId      String
+  client        Client   @relation(fields: [clientId], references: [id])
+  type          String
+  content       String?
+  period        String?
+  createdAt     DateTime @default(now())
+}
+
+model Template {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  name          String
+  type          String
+  content       String
+  category      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model AIOutput {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  userId        String?
+  inputPrompt   String
+  output        String
+  model         String?
+  createdAt     DateTime @default(now())
+}
+
+model ActivityLog {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id])
+  userId        String?
+  action        String
+  entityType    String?
+  entityId      String?
+  metadata      String?
+  createdAt     DateTime @default(now())
+}
